@@ -89,10 +89,6 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 				+ SScrollBox::Slot()
 				[
 					SAssignNew( ListWidget, SList )
-					// SAssignNew(StringListWidget, SListView<TSharedPtr<FString>>)
-					// .ItemHeight(24)
-					// .ListItemsSource(&StringList)
-					// .OnGenerateRow(this, &FCustomWIndowPluginModule::GenerateStringListRow)
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -102,7 +98,7 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 				// リクエストを送るボタン
 				SNew(SButton)
 				.Text(LOCTEXT("RequestButton", "Submit"))
-				.OnClicked(this, &FCustomWIndowPluginModule::OnSubmitClicked)
+				.OnClicked_Raw(this, &FCustomWIndowPluginModule::OnSubmitClicked)
 			]
 		];
 }
