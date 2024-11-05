@@ -1,8 +1,11 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "CustomWIndowPlugin.h"
+
+#include "CustomGizmoEdMode.h"
 #include "CustomWIndowPluginStyle.h"
 #include "CustomWIndowPluginCommands.h"
+#include "EditorModeManager.h"
 #include "FPlaySessionResponse.h"
 #include "HttpModule.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -27,13 +30,22 @@ void FCustomWIndowPluginModule::StartupModule()
 	PluginCommands->MapAction(
 		FCustomWIndowPluginCommands::Get().OpenPluginWindow,
 		FExecuteAction::CreateRaw(this, &FCustomWIndowPluginModule::PluginButtonClicked),
-		FCanExecuteAction());
+		FCanExecuteAction())
+	;
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FCustomWIndowPluginModule::RegisterMenus));
 	
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(CustomWIndowPluginTabName, FOnSpawnTab::CreateRaw(this, &FCustomWIndowPluginModule::OnSpawnPluginTab))
 		.SetDisplayName(LOCTEXT("FCustomWIndowPluginTabTitle", "CustomWIndowPlugin"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);
+		.SetMenuType(ETabSpawnerMenuType::Hidden)
+		.SetIcon(FSlateIcon(FName("CustomWIndowPluginStyle"), FName("CustomWIndowPlugin.OpenPluginWindowIcon")));
+
+	FEditorModeRegistry::Get().RegisterMode<FCustomGizmoEdMode>(
+		FCustomGizmoEdMode::EM_CustomGizmoEdMode, // モードID
+		FText::FromString("Custom Gizmo Mode"),   // 表示名
+		FSlateIcon(FName("CustomWIndowPluginStyle"), FName("CustomWIndowPlugin.OpenPluginWindowIcon")),                             // アイコン（省略可能）
+		true                                      // 単一選択に設定
+	);
 }
 
 void FCustomWIndowPluginModule::ShutdownModule()
@@ -137,6 +149,20 @@ FReply FCustomWIndowPluginModule::OnSubmitClicked()
 		return FReply::Handled();
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Selected: %s"), *selected->Name);
+	
+	// Gizmoの表示モードが有効かどうかを確認
+	if (GLevelEditorModeTools().IsModeActive(FCustomGizmoEdMode::EM_CustomGizmoEdMode))
+	{
+		// モードが有効な場合は無効にする
+		GLevelEditorModeTools().DeactivateMode(FCustomGizmoEdMode::EM_CustomGizmoEdMode);
+		UE_LOG(LogTemp, Warning, TEXT("Custom Gizmo Mode Deactivated"));
+	}
+	else
+	{
+		// モードが無効な場合は有効にする
+		GLevelEditorModeTools().ActivateMode(FCustomGizmoEdMode::EM_CustomGizmoEdMode);
+		UE_LOG(LogTemp, Warning, TEXT("Custom Gizmo Mode Activated"));
+	}
 	return FReply::Handled();
 }
 
@@ -204,17 +230,6 @@ void FCustomWIndowPluginModule::OnResponseReceived(FHttpRequestPtr Request, FHtt
 	// 		StringListWidget->RequestListRefresh();
 	// 	}
 	// }
-}
-
-TSharedRef<ITableRow> FCustomWIndowPluginModule::GenerateStringListRow(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable)
-{
-	return // リスト要素（行）を作成
-        SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
-        .Padding( 2.f )
-        [
-            // ラベルとして要素を追加
-            SNew( STextBlock ).Text( FText::FromString( *InItem.Get() ) )
-        ];
 }
 
 void FCustomWIndowPluginModule::PluginButtonClicked()

@@ -37,9 +37,6 @@ private:
 	/** HTTPリクエストのレスポンス処理 */
 	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
-	/** リストの行生成 */
-	TSharedRef<ITableRow> GenerateStringListRow(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
-
 private:
 	/** コマンドリスト */
 	TSharedPtr<class FUICommandList> PluginCommands = nullptr;

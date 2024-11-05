@@ -27,7 +27,7 @@ public class CustomWIndowPlugin : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "HTTP", "Json", "JsonUtilities",
+				"Core", "HTTP", "Json", "JsonUtilities", "RHI", "RenderCore",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
