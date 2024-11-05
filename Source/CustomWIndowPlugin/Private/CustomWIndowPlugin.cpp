@@ -150,7 +150,7 @@ FReply FCustomWIndowPluginModule::OnSubmitClicked()
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Selected: %s"), *selected->Name);
 
-	LudiscanClient::PlayGround();
+	// LudiscanClient::PlayGround();
 	
 	// Gizmoの表示モードが有効かどうかを確認
 	if (GLevelEditorModeTools().IsModeActive(FCustomGizmoEdMode::EM_CustomGizmoEdMode))

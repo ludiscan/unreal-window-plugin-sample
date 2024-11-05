@@ -62,25 +62,6 @@ class LudiscanClient {
         Request->SetContent(BinaryData);
         Request->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
         
-        return Request;
-    }
-    FString bApiHostName;
-public:
-
-    void SetConfig(FString ApiHostName) {
-        this->bApiHostName = ApiHostName;
-    }
-
-    void CreatePositionsPost(
-        int projectId,
-        int sessionId,
-        int players,
-        int stampCount,
-        const TArray<TArray<PlayerPosition>>& allPositions
-    ) {
-        TArray<uint8> BinaryData = ConstructBinaryData(players, stampCount, allPositions);
-        TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-
         // `multipart/form-data`形式でリクエストを構築
         FString Boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
         FString ContentType = FString::Printf(TEXT("multipart/form-data; boundary=%s"), *Boundary);
@@ -101,6 +82,26 @@ public:
 
         // リクエストにペイロードをセット
         Request->SetContent(PayloadData);
+        
+        return Request;
+    }
+    FString bApiHostName;
+public:
+
+    void SetConfig(FString ApiHostName) {
+        this->bApiHostName = ApiHostName;
+    }
+
+    void CreatePositionsPost(
+        int projectId,
+        int sessionId,
+        int players,
+        int stampCount,
+        const TArray<TArray<PlayerPosition>>& allPositions
+    ) {
+        TArray<uint8> BinaryData = ConstructBinaryData(players, stampCount, allPositions);
+        TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = CreateHttpContent(BinaryData);
+       
         Request->SetURL(bApiHostName + "/api/v0/projects/" + FString::FromInt(projectId) + "/play_session/" + FString::FromInt(sessionId) + "/player_position_log");
         Request->SetVerb("POST");
 
