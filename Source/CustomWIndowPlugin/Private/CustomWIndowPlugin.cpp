@@ -8,7 +8,6 @@
 #include "EditorModeManager.h"
 #include "FPlaySessionResponse.h"
 #include "HttpModule.h"
-#include "LudiscanClient.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
@@ -37,7 +36,7 @@ void FCustomWIndowPluginModule::StartupModule()
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FCustomWIndowPluginModule::RegisterMenus));
 	
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(CustomWIndowPluginTabName, FOnSpawnTab::CreateRaw(this, &FCustomWIndowPluginModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FCustomWIndowPluginTabTitle", "CustomWIndowPlugin"))
+		.SetDisplayName(LOCTEXT("FCustomWIndowPluginTabTitle", "ヒートマップツールのテスト"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden)
 		.SetIcon(FSlateIcon(FName("CustomWIndowPluginStyle"), FName("CustomWIndowPlugin.OpenPluginWindowIcon")));
 
@@ -112,7 +111,7 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 				]
 			]
 			+ SVerticalBox::Slot()
-			.Padding(0, 40)
+			.Padding(200, 20)
 			.AutoHeight()
 			[
 				// リクエストを送るボタン

@@ -38,7 +38,7 @@ void FCustomGizmoEdMode::Exit()
 void FCustomGizmoEdMode::InitializeHeatMapData()
 {
 	// サンプルデータの生成
-	const int32 NumPoints = 400;   // 点の数
+	const int32 NumPoints = 52;   // 点の数
 	const FVector BoundsMin(-1000.0f, -1000.0f, 0.0f);  // ボックスの最小位置
 	const FVector BoundsMax(1000.0f, 1000.0f, 10.0f); // ボックスの最大位置
 	MaxDensityValue = 5.0f;
@@ -64,7 +64,7 @@ void FCustomGizmoEdMode::InitializeHeatMapData()
 
 void FCustomGizmoEdMode::GenerateDrawPositions()
 {
-	const float StepSize = 50.0f;  // 一定間隔で配置する距離
+	const float StepSize = 25.0f;  // 一定間隔で配置する距離
 	const FVector BoxSize = BoundingBox.Max - BoundingBox.Min;  // ボックスのサイズ
 	const int32 StepsX = FMath::CeilToInt(BoxSize.X / StepSize);
 	const int32 StepsY = FMath::CeilToInt(BoxSize.Y / StepSize);

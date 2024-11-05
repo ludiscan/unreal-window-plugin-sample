@@ -10,6 +10,7 @@ void SList::Construct( const FArguments& Args )
 		SNew(SScrollBox)
 		.Orientation(Orient_Horizontal) // 横スクロールを有効にする
 		+ SScrollBox::Slot()
+		.AutoSize()
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -20,26 +21,32 @@ void SList::Construct( const FArguments& Args )
 				+ SHeaderRow::Column("SessionId")
 				.DefaultLabel(FText::FromString("Session ID"))
 				.HAlignHeader(HAlign_Left)
+				.FillWidth(1)
 
 				+ SHeaderRow::Column("ProjectId")
 				.DefaultLabel(FText::FromString("Project ID"))
 				.HAlignHeader(HAlign_Left)
+				.FillWidth(1)
 
 				+ SHeaderRow::Column("Name")
 				.DefaultLabel(FText::FromString("Name"))
 				.HAlignHeader(HAlign_Left)
+				.FillWidth(3)
 
 				+ SHeaderRow::Column("startTime")
 				.DefaultLabel(FText::FromString("Start Time"))
 				.HAlignHeader(HAlign_Left)
+				.FillWidth(3)
 
 				+ SHeaderRow::Column("DeviceId")
 				.DefaultLabel(FText::FromString("Device ID"))
 				.HAlignHeader(HAlign_Left)
+				.FillWidth(2)
 
 				+ SHeaderRow::Column("Platform")
 				.DefaultLabel(FText::FromString("Platform"))
 				.HAlignHeader(HAlign_Left)
+				.FillWidth(2)
 			]
 
 			+ SVerticalBox::Slot()
@@ -81,22 +88,22 @@ TSharedRef<ITableRow> SList::OnGenerateRowForList( TSharedPtr<FString> Item, con
 				SNew(STextBlock).Text(FText::AsNumber(playSession->ProjectId))
 			]
 			+ SHorizontalBox::Slot()
-			.FillWidth(1)
+			.FillWidth(3)
 			[
 				SNew(STextBlock).Text(FText::FromString(playSession->Name))
 			]
 			+ SHorizontalBox::Slot()
-			.FillWidth(1)
+			.FillWidth(3)
 			[
 				SNew(STextBlock).Text(FText::FromString(playSession->StartTime))
 			]
 			+ SHorizontalBox::Slot()
-			.FillWidth(1)
+			.FillWidth(2)
 			[
 				SNew(STextBlock).Text(FText::FromString(playSession->DeviceId))
 			]
 			+ SHorizontalBox::Slot()
-			.FillWidth(1)
+			.FillWidth(2)
 			[
 				SNew(STextBlock).Text(FText::FromString(playSession->Platform))
 			]
