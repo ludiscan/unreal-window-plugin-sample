@@ -41,7 +41,7 @@ TSharedRef< FSlateStyleSet > FCustomWIndowPluginStyle::Create()
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("CustomWIndowPluginStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("CustomWIndowPlugin")->GetBaseDir() / TEXT("Resources"));
 
-	Style->Set("CustomWIndowPlugin.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
+	Style->Set("CustomWIndowPlugin.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("my-icon"), Icon20x20));
 
 	return Style;
 }

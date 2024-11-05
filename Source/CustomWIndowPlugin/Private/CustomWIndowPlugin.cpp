@@ -3,9 +3,9 @@
 #include "CustomWIndowPlugin.h"
 #include "CustomWIndowPluginStyle.h"
 #include "CustomWIndowPluginCommands.h"
+#include "FPlaySessionResponse.h"
 #include "HttpModule.h"
 #include "Widgets/Docking/SDockTab.h"
-#include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
 #include "Interfaces/IHttpResponse.h"
@@ -17,7 +17,6 @@ static const FName CustomWIndowPluginTabName("CustomWIndowPlugin");
 void FCustomWIndowPluginModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	StringList.Add(MakeShareable(new FString("Hello")));
 	FCustomWIndowPluginStyle::Initialize();
 	FCustomWIndowPluginStyle::ReloadTextures();
 
@@ -57,6 +56,7 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 {
 	return SNew(SDockTab)
 		.TabRole(NomadTab)
+		.Icon(FCustomWIndowPluginStyle::Get().GetBrush("CustomWIndowPlugin.OpenPluginWindow"))
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -79,6 +79,14 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 					.OnTextCommitted_Raw(this, &FCustomWIndowPluginModule::OnHostNameCommitted)
 					.OnTextChanged_Raw(this, &FCustomWIndowPluginModule::OnHostNameCommitted, ETextCommit::Default)
 				]
+				+ SHorizontalBox::Slot()
+				.Padding(10, 0, 0, 0)
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("SessionLoadButton", "Load"))
+					.OnClicked_Raw(this, &FCustomWIndowPluginModule::OnSessionLoadClicked)
+				]
 			]
 			+ SVerticalBox::Slot()
 			.FillHeight(1)
@@ -92,8 +100,8 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 				]
 			]
 			+ SVerticalBox::Slot()
+			.Padding(0, 40)
 			.AutoHeight()
-			.Padding(10)
 			[
 				// リクエストを送るボタン
 				SNew(SButton)
@@ -109,38 +117,93 @@ void FCustomWIndowPluginModule::OnHostNameCommitted(const FText& InText, ETextCo
 	UE_LOG(LogTemp, Warning, TEXT("API Host set to: %s"), *ApiHostName);
 }
 
-FReply FCustomWIndowPluginModule::OnSubmitClicked()
+FReply FCustomWIndowPluginModule::OnSessionLoadClicked()
 {
 	// HTTPリクエストを送信
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 	Request->OnProcessRequestComplete().BindRaw(this, &FCustomWIndowPluginModule::OnResponseReceived);
-	Request->SetURL(ApiHostName + "/your-endpoint"); // 適宜エンドポイントに合わせてください
+	Request->SetURL(ApiHostName + "/api/v0/projects/1/play_session"); // 適宜エンドポイントに合わせてください
 	Request->SetVerb("GET");
 	Request->ProcessRequest();
 	return FReply::Handled();
 }
 
+FReply FCustomWIndowPluginModule::OnSubmitClicked()
+{
+	auto selected = ListWidget->GetSelectedItem();
+	if (!selected.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No item selected."));
+		return FReply::Handled();
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Selected: %s"), *selected->Name);
+	return FReply::Handled();
+}
+
 void FCustomWIndowPluginModule::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-	if (bWasSuccessful && Response.IsValid())
+	UE_LOG(LogTemp, Warning, TEXT("Response received!"));
+	if (!bWasSuccessful || !Response.IsValid())
 	{
-		FString ResponseString = Response->GetContentAsString();
-        
-		// レスポンスをパースしてリストに追加
-		StringList.Empty();
-		TArray<FString> ParsedStrings;
-		ResponseString.ParseIntoArray(ParsedStrings, TEXT(","), true); // カンマ区切りと仮定
-        
-		for (const FString& Item : ParsedStrings)
-		{
-			StringList.Add(MakeShareable(new FString(Item)));
-		}
-
-		if (StringListWidget.IsValid())
-		{
-			StringListWidget->RequestListRefresh();
-		}
+		UE_LOG(LogTemp, Error, TEXT("HTTPリクエストが失敗しました。"));
+		return;
 	}
+
+	// レスポンスボディを取得
+	FString ResponseContent = Response->GetContentAsString();
+
+	// JSON文字列を解析して構造体に変換
+	TArray<FPlaySessionResponseDto> PlaySessionData;
+	if (FPlaySessionResponseDto::ParseArrayFromJson(ResponseContent, PlaySessionData))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("JSONのパースに成功しました。"));
+		// メインスレッドでの処理を実行
+		AsyncTask(ENamedThreads::GameThread, [this, PlaySessionData]()
+		{
+			if (ListWidget.IsValid())
+			{
+				ListWidget->ClearList();
+				for (const FPlaySessionResponseDto& Item : PlaySessionData)
+				{
+					// パースに成功した場合の処理
+					UE_LOG(LogTemp, Log, TEXT("セッションID: %d"), Item.SessionId);
+					UE_LOG(LogTemp, Log, TEXT("プロジェクトID: %d"), Item.ProjectId);
+					UE_LOG(LogTemp, Log, TEXT("名前: %s"), *Item.Name);
+					UE_LOG(LogTemp, Log, TEXT("デバイスID: %s"), *Item.DeviceId);
+					UE_LOG(LogTemp, Log, TEXT("プラットフォーム: %s"), *Item.Platform);
+					UE_LOG(LogTemp, Log, TEXT("アプリバージョン: %s"), *Item.AppVersion);
+					UE_LOG(LogTemp, Log, TEXT("開始時間: %s"), *Item.StartTime);
+					UE_LOG(LogTemp, Log, TEXT("終了時間: %s"), *Item.EndTime);
+					UE_LOG(LogTemp, Log, TEXT("再生中: %s"), Item.bIsPlaying ? TEXT("true") : TEXT("false"));
+					ListWidget->AddItem(Item);
+				}
+				ListWidget->RequestListRefresh();
+			}
+		});
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("JSONのパースに失敗しました。"));
+	}
+	// if (bWasSuccessful && Response.IsValid())
+	// {
+	// 	FString ResponseString = Response->GetContent()
+ //        
+	// 	// レスポンスをパースしてリストに追加
+	// 	StringList.Empty();
+	// 	TArray<FString> ParsedStrings;
+	// 	ResponseString.ParseIntoArray(ParsedStrings, TEXT(","), true); // カンマ区切りと仮定
+ //        
+	// 	for (const FString& Item : ParsedStrings)
+	// 	{
+	// 		StringList.Add(MakeShareable(new FString(Item)));
+	// 	}
+	//
+	// 	if (StringListWidget.IsValid())
+	// 	{
+	// 		StringListWidget->RequestListRefresh();
+	// 	}
+	// }
 }
 
 TSharedRef<ITableRow> FCustomWIndowPluginModule::GenerateStringListRow(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable)

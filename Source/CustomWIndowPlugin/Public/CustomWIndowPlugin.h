@@ -29,6 +29,7 @@ private:
 
 	/** ホスト名入力のコミット処理 */
 	void OnHostNameCommitted(const FText& InText, ETextCommit::Type InCommitType);
+	FReply OnSessionLoadClicked();
 
 	/** Submitボタンが押された際のリクエスト送信 */
 	FReply OnSubmitClicked();
@@ -45,9 +46,6 @@ private:
 
 	/** APIホスト名 */
 	FString ApiHostName = "http://localhost:3000";
-
-	/** リクエスト結果の文字列リスト */
-	TArray<TSharedPtr<FString>> StringList = TArray<TSharedPtr<FString>>();
 
 	/** リスト表示用のウィジェット */
 	TSharedPtr<SListView<TSharedPtr<FString>>> StringListWidget = nullptr;

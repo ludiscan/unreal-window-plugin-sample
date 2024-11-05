@@ -1,11 +1,13 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class CustomWIndowPlugin : ModuleRules
 {
 	public CustomWIndowPlugin(ReadOnlyTargetRules Target) : base(Target)
 	{
+
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
@@ -25,7 +27,7 @@ public class CustomWIndowPlugin : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "HTTP",
+				"Core", "HTTP", "Json", "JsonUtilities",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -54,5 +56,6 @@ public class CustomWIndowPlugin : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
+		
 	}
 }
