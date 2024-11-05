@@ -8,6 +8,7 @@
 #include "EditorModeManager.h"
 #include "FPlaySessionResponse.h"
 #include "HttpModule.h"
+#include "LudiscanClient.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
@@ -68,7 +69,6 @@ TSharedRef<SDockTab> FCustomWIndowPluginModule::OnSpawnPluginTab(const FSpawnTab
 {
 	return SNew(SDockTab)
 		.TabRole(NomadTab)
-		.Icon(FCustomWIndowPluginStyle::Get().GetBrush("CustomWIndowPlugin.OpenPluginWindow"))
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -149,6 +149,8 @@ FReply FCustomWIndowPluginModule::OnSubmitClicked()
 		return FReply::Handled();
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Selected: %s"), *selected->Name);
+
+	LudiscanClient::PlayGround();
 	
 	// Gizmoの表示モードが有効かどうかを確認
 	if (GLevelEditorModeTools().IsModeActive(FCustomGizmoEdMode::EM_CustomGizmoEdMode))
