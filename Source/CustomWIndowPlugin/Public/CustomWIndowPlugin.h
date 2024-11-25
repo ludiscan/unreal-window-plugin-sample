@@ -37,6 +37,8 @@ private:
 	/** HTTPリクエストのレスポンス処理 */
 	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	void OnShowDialog(FString Message);
+
 private:
 	/** コマンドリスト */
 	TSharedPtr<class FUICommandList> PluginCommands = nullptr;
@@ -47,4 +49,6 @@ private:
 	/** リスト表示用のウィジェット */
 	TSharedPtr<SListView<TSharedPtr<FString>>> StringListWidget = nullptr;
 	TSharedPtr<SList> ListWidget;
+
+
 };

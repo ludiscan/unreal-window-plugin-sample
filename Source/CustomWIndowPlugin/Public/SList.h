@@ -5,6 +5,13 @@ class SList : public SCompoundWidget
 {
 private:
 	TSharedPtr<FPlaySessionResponseDto> SelectedItem;
+	void OnFilterTextChanged(const FText& InText);
+	void UpdateFilteredItems();
+	void OnSortColumn(EColumnSortPriority::Type SortPriority, const FName& ColumnId, EColumnSortMode::Type NewSortMode);
+	EColumnSortMode::Type GetSortModeForColumn(FName ColumnId) const;
+	void UpdateSortedItems();
+	FReply OnFilterByDeviceIdClicked();
+
 public:
 	SLATE_BEGIN_ARGS( SList ) {}
 	SLATE_END_ARGS()
@@ -22,6 +29,7 @@ public:
 	void ClearList();
 
 	void RequestListRefresh();
+
 
 	TSharedPtr<FPlaySessionResponseDto> GetSelectedItem() const { return SelectedItem; }
 
@@ -53,4 +61,10 @@ protected:
 
 	/** リストビューウィジェット */
 	TSharedPtr< SListView<TSharedPtr<FString>> > ListViewWidget;
+
+	FString FilterText; // フィルタ用文字列
+	bool bSortAscending = true; // 並び替え方向（昇順・降順）
+	FName SortColumn = "SessionId";
+
+	TArray<TSharedPtr<FString>> FilteredItems;
 };

@@ -22,11 +22,43 @@ void FCustomGizmoEdMode::Draw(const FSceneView* View, FPrimitiveDrawInterface* P
 	}
 }
 
+void FCustomGizmoEdMode::SetHeatmapData(const TArray<FPlaySessionHeatmapResponseDto>& NewHeatmapData)
+{
+	// 渡されたヒートマップデータを格納
+	HeatmapArray = NewHeatmapData;
+
+	CalculateBoundingBox();
+	// ヒートマップデータの初期化（位置生成）
+	GenerateDrawPositions();
+}
+
+void FCustomGizmoEdMode::CalculateBoundingBox()
+{
+	// 初期値は非常に大きな値
+	float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
+	float maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
+
+	// HeatmapArrayからmin, maxを計算
+	for (const FPlaySessionHeatmapResponseDto& Data : HeatmapArray)
+	{
+		minX = FMath::Min(minX, Data.X);
+		minY = FMath::Min(minY, Data.Y);
+		minZ = FMath::Min(minZ, Data.Z);
+
+		maxX = FMath::Max(maxX, Data.X);
+		maxY = FMath::Max(maxY, Data.Y);
+		maxZ = FMath::Max(maxZ, Data.Z);
+		MaxDensityValue = FMath::Max(MaxDensityValue, Data.Density);
+	}
+
+	// 計算したmin, maxをBoundingBoxに設定
+	BoundingBox.Min = FVector(minX, minY, minZ);
+	BoundingBox.Max = FVector(maxX, maxY, maxZ);
+}
 void FCustomGizmoEdMode::Enter()
 {
 	FEdMode::Enter();
 	// 必要に応じて初期化コードを追加
-	InitializeHeatMapData();
 }
 
 void FCustomGizmoEdMode::Exit()
@@ -35,36 +67,11 @@ void FCustomGizmoEdMode::Exit()
 	FEdMode::Exit();
 }
 
-void FCustomGizmoEdMode::InitializeHeatMapData()
-{
-	// サンプルデータの生成
-	const int32 NumPoints = 52;   // 点の数
-	const FVector BoundsMin(-1000.0f, -1000.0f, 0.0f);  // ボックスの最小位置
-	const FVector BoundsMax(1000.0f, 1000.0f, 10.0f); // ボックスの最大位置
-	MaxDensityValue = 5.0f;
-
-	BoundingBox = FBox(BoundsMin, BoundsMax); // バウンディングボックスを定義
-
-	// ヒートマップデータと描画情報のリストをクリア
-	HeatMapData.Empty();
-	DrawPositions.Empty();
-
-	// サンプルデータ生成
-	for (int32 i = 0; i < NumPoints; ++i)
-	{
-		FVector Position = FMath::RandPointInBox(BoundingBox);  // ランダムな位置
-		float Density = FMath::FRandRange(0.1f, MaxDensityValue);  // ランダムな密度
-		HeatMapData.Add({Position, Density});
-	}
-
-	// 描画リストを生成
-	GenerateDrawPositions();
-}
-
 
 void FCustomGizmoEdMode::GenerateDrawPositions()
 {
-	const float StepSize = 25.0f;  // 一定間隔で配置する距離
+	DrawPositions.Empty();
+	const float StepSize = 100.0f;  // 一定間隔で配置する距離
 	const FVector BoxSize = BoundingBox.Max - BoundingBox.Min;  // ボックスのサイズ
 	const int32 StepsX = FMath::CeilToInt(BoxSize.X / StepSize);
 	const int32 StepsY = FMath::CeilToInt(BoxSize.Y / StepSize);
@@ -77,14 +84,18 @@ void FCustomGizmoEdMode::GenerateDrawPositions()
 		{
 			for (int32 Z = 0; Z <= StepsZ; ++Z)
 			{
+				if (!bDrawZAxis && Z != StepsZ)  // Z軸の描画がOFFの場合、Z軸の最大値を除外
+				{
+					continue;
+				}
 				FVector Position = BoundingBox.Min + FVector(X * StepSize, Y * StepSize, Z * StepSize);
 
 				// 最も近いデータ点を見つける
 				float MinDistance = FLT_MAX;
 				float ClosestDensity = 0.0f;
-				for (const FHeatMapData& Data : HeatMapData)
+				for (const FPlaySessionHeatmapResponseDto& Data : HeatmapArray)
 				{
-					float Distance = FVector::Dist(Position, Data.Position);
+					float Distance = FVector::Dist(Position, FVector(Data.X, Data.Y, Data.Z));
 					if (Distance < MinDistance)
 					{
 						MinDistance = Distance;
@@ -94,7 +105,7 @@ void FCustomGizmoEdMode::GenerateDrawPositions()
 
 				// 密度に基づいて色を決定
 				FColor Color = FColor::MakeRedToGreenColorFromScalar(ClosestDensity / MaxDensityValue);
-				Color.A = FMath::Clamp(255 - static_cast<int32>(MinDistance / BoxSize.Size() * 255), 0, 255);  // 距離に応じて透明度調整
+				Color.A = FMath::Clamp(255 - static_cast<int32>(MinDistance / MaxDistance * 255), 0, 255);  // 距離に応じて透明度調整
 
 				// 描画データに追加
 				DrawPositions.Add({Position, Color});

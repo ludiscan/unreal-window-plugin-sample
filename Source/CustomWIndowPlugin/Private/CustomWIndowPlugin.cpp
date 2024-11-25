@@ -8,6 +8,7 @@
 #include "EditorModeManager.h"
 #include "FPlaySessionResponse.h"
 #include "HttpModule.h"
+#include "LudiscanClient.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
@@ -36,13 +37,13 @@ void FCustomWIndowPluginModule::StartupModule()
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FCustomWIndowPluginModule::RegisterMenus));
 	
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(CustomWIndowPluginTabName, FOnSpawnTab::CreateRaw(this, &FCustomWIndowPluginModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FCustomWIndowPluginTabTitle", "ヒートマップツールのテスト"))
+		.SetDisplayName(LOCTEXT("FCustomWIndowPluginTabTitle", "分析Editor"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden)
 		.SetIcon(FSlateIcon(FName("CustomWIndowPluginStyle"), FName("CustomWIndowPlugin.OpenPluginWindowIcon")));
 
 	FEditorModeRegistry::Get().RegisterMode<FCustomGizmoEdMode>(
 		FCustomGizmoEdMode::EM_CustomGizmoEdMode, // モードID
-		FText::FromString("Custom Gizmo Mode"),   // 表示名
+		FText::FromString("分析モード"),   // 表示名
 		FSlateIcon(FName("CustomWIndowPluginStyle"), FName("CustomWIndowPlugin.OpenPluginWindowIcon")),                             // アイコン（省略可能）
 		true                                      // 単一選択に設定
 	);
@@ -133,7 +134,7 @@ FReply FCustomWIndowPluginModule::OnSessionLoadClicked()
 	// HTTPリクエストを送信
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 	Request->OnProcessRequestComplete().BindRaw(this, &FCustomWIndowPluginModule::OnResponseReceived);
-	Request->SetURL(ApiHostName + "/api/v0/projects/1/play_session"); // 適宜エンドポイントに合わせてください
+	Request->SetURL(ApiHostName + "/api/v0/projects/1/play_session?limit=10&offset=0");
 	Request->SetVerb("GET");
 	Request->ProcessRequest();
 	return FReply::Handled();
@@ -149,7 +150,28 @@ FReply FCustomWIndowPluginModule::OnSubmitClicked()
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Selected: %s"), *selected->Name);
 
-	// LudiscanClient::PlayGround();
+	auto ludiscanCLient = new LudiscanClient();
+	ludiscanCLient->SetConfig(ApiHostName);
+	ludiscanCLient->GetHeatMap(1, selected->SessionId,[this](TArray<FPlaySessionHeatmapResponseDto> HeatmapList)
+	{
+		// HeatmapListを使って何かの処理をする
+		for (const FPlaySessionHeatmapResponseDto& HeatmapData : HeatmapList)
+		{
+			UE_LOG(LogTemp, Log, TEXT("X: %f"), HeatmapData.X);
+			UE_LOG(LogTemp, Log, TEXT("Y: %f"), HeatmapData.Y);
+			UE_LOG(LogTemp, Log, TEXT("Z: %f"), HeatmapData.Z);
+			UE_LOG(LogTemp, Log, TEXT("Density: %f"), HeatmapData.Density);
+		}
+		if (FCustomGizmoEdMode* CustomGizmoMode = static_cast<FCustomGizmoEdMode*>(GLevelEditorModeTools().GetActiveMode(FCustomGizmoEdMode::EM_CustomGizmoEdMode)))
+		{
+			CustomGizmoMode->SetHeatmapData(HeatmapList); // ヒートマップデータを設定
+		}
+		UE_LOG(LogTemp, Log, TEXT("Heatmap data received and parsed successfully."));
+	}, [this](FString Message)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get heatmap data."));
+		OnShowDialog(Message);
+	});
 	
 	// Gizmoの表示モードが有効かどうかを確認
 	if (GLevelEditorModeTools().IsModeActive(FCustomGizmoEdMode::EM_CustomGizmoEdMode))
@@ -173,11 +195,18 @@ void FCustomWIndowPluginModule::OnResponseReceived(FHttpRequestPtr Request, FHtt
 	if (!bWasSuccessful || !Response.IsValid())
 	{
 		UE_LOG(LogTemp, Error, TEXT("HTTPリクエストが失敗しました。"));
+		OnShowDialog("HTTP request failed.");
 		return;
 	}
 
 	// レスポンスボディを取得
 	FString ResponseContent = Response->GetContentAsString();
+	if (ResponseContent == "[]" )
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No data found."));
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *ResponseContent);
 
 	// JSON文字列を解析して構造体に変換
 	TArray<FPlaySessionResponseDto> PlaySessionData;
@@ -211,26 +240,17 @@ void FCustomWIndowPluginModule::OnResponseReceived(FHttpRequestPtr Request, FHtt
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("JSONのパースに失敗しました。"));
+		OnShowDialog("Failed to parse JSON response.");
 	}
-	// if (bWasSuccessful && Response.IsValid())
-	// {
-	// 	FString ResponseString = Response->GetContent()
- //        
-	// 	// レスポンスをパースしてリストに追加
-	// 	StringList.Empty();
-	// 	TArray<FString> ParsedStrings;
-	// 	ResponseString.ParseIntoArray(ParsedStrings, TEXT(","), true); // カンマ区切りと仮定
- //        
-	// 	for (const FString& Item : ParsedStrings)
-	// 	{
-	// 		StringList.Add(MakeShareable(new FString(Item)));
-	// 	}
-	//
-	// 	if (StringListWidget.IsValid())
-	// 	{
-	// 		StringListWidget->RequestListRefresh();
-	// 	}
-	// }
+}
+
+void FCustomWIndowPluginModule::OnShowDialog(FString Message)
+{
+	FText DialogText = FText::Format(
+		LOCTEXT("Request Error", "Request Error: {0}"),
+		FText::FromString(Message)
+	);
+	FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 }
 
 void FCustomWIndowPluginModule::PluginButtonClicked()
